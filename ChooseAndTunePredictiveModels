@@ -1,0 +1,46 @@
+rm(list=ls())
+dataset<-read.csv("Student Data 9.csv")
+dataset$card<- dataset$card == 1
+dataset$owner<- dataset$owner ==1
+dataset$selfemp<- dataset$selfemp ==1
+
+set.seed(2) 
+nFold = 10
+valNum = floor(runif(nrow(dataset))*nFold)+1
+
+modelPerformance = matrix(NA,nFold,9)
+for(foldNum in 1:nFold){
+  
+  trainingData = subset(dataset,valNum!=foldNum)
+  validationData = subset(dataset,valNum==foldNum)
+  
+  model1 = lm(card~.,data=trainingData)
+  model2 = lm(card~(.)^2,data=trainingData)
+  model3 = lm(card~(.)^3,data=trainingData)
+  library('earth')
+  model4 = earth(card~.,data=trainingData)
+  model5 = earth(card~.,data=trainingData,thres=0.1)
+  model6 = earth(card~.,data=trainingData,thres=0.01)
+  model7 = earth(card~.,data=trainingData,thres=0.001)
+  model8 = earth(card~.,data=trainingData,thres=0.0001)
+  model9 = earth(card~.,data=trainingData,degree=2)
+
+  
+  modelPerformance[foldNum,1] = mean((validationData$card - predict(model1,validationData))^2)^.5
+  modelPerformance[foldNum,2] = mean((validationData$card - predict(model2,validationData))^2)^.5
+  modelPerformance[foldNum,3] = mean((validationData$card - predict(model3,validationData))^2)^.5
+  modelPerformance[foldNum,4] = mean((validationData$card - predict(model4,validationData))^2)^.5
+  modelPerformance[foldNum,5] = mean((validationData$card - predict(model5,validationData))^2)^.5
+  modelPerformance[foldNum,6] = mean((validationData$card - predict(model6,validationData))^2)^.5
+  modelPerformance[foldNum,7] = mean((validationData$card - predict(model7,validationData))^2)^.5
+  modelPerformance[foldNum,8] = mean((validationData$card - predict(model8,validationData))^2)^.5
+  modelPerformance[foldNum,9] = mean((validationData$card - predict(model9,validationData))^2)^.5
+}
+
+colMeans(modelPerformance)
+anova(model2)
+model9 <-lm(card~reports+income+share+expenditure+owner+majorcards+active+reports*share+reports*expenditure+income*expenditure+share*expenditure+expenditure*owner+expenditure*months,data=trainingData)
+mean((validationData$card - predict(model9,validationData))^2)^.5
+model10 <-lm(card~reports+income+share+owner+majorcards+reports*share+share*majorcards+share*dependents,data=trainingData)
+mean((validationData$card - predict(model10,validationData))^2)^.5
+chosenModel = earth(card~.,data=dataset,degree=2)
